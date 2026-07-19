@@ -13,6 +13,8 @@ const SWIMMER_COLORS = {
 // State variables
 let map;
 let markers = {};
+let connectionLines = {};
+let distanceLabels = {};
 let decryptedTokens = null;
 let trackingInterval = null;
 
@@ -254,6 +256,9 @@ async function updateLiveLocations() {
                         icon: createSwimmerIcon(person.name, color) 
                     }).addTo(map).bindPopup(`<b>${person.name}</b><br>Élő követés aktív`);
                 }
+
+                // Update thin dotted connection lines and distance labels
+                updateSwimmerConnections(person.name, pos, color);
             }
         } catch (error) {
             console.error(`Error updating tracking stream for ${person.name}:`, error);
@@ -262,4 +267,87 @@ async function updateLiveLocations() {
     
     // Note: We deliberately DO NOT reset or set the view here,
     // which allows the user to pan/zoom freely and preserves the viewport state.
+}
+
+// Update thin dotted connection lines and distance labels to start and end
+function updateSwimmerConnections(name, pos, color) {
+    // 1. Calculate distances
+    const distStart = L.latLng(pos).distanceTo(L.latLng(REVFULOP_COORDS));
+    const distFinish = L.latLng(pos).distanceTo(L.latLng(BALATONBOGLAR_COORDS));
+    const startKm = (distStart / 1000).toFixed(2) + ' km';
+    const finishKm = (distFinish / 1000).toFixed(2) + ' km';
+
+    // 2. Create or update Polylines
+    if (!connectionLines[name]) {
+        connectionLines[name] = {};
+    }
+
+    const lineOpts = {
+        color: color,
+        weight: 1,
+        dashArray: '2, 4',
+        opacity: 0.7
+    };
+
+    if (connectionLines[name].start) {
+        connectionLines[name].start.setLatLngs([REVFULOP_COORDS, pos]);
+    } else {
+        connectionLines[name].start = L.polyline([REVFULOP_COORDS, pos], lineOpts).addTo(map);
+    }
+
+    if (connectionLines[name].end) {
+        connectionLines[name].end.setLatLngs([pos, BALATONBOGLAR_COORDS]);
+    } else {
+        connectionLines[name].end = L.polyline([pos, BALATONBOGLAR_COORDS], lineOpts).addTo(map);
+    }
+
+    // 3. Create or update distance labels
+    if (!distanceLabels[name]) {
+        distanceLabels[name] = {};
+    }
+
+    // Perpendicular offset components for label separation
+    const baseLatOffset = 0.0006;
+    const baseLngOffset = 0.0013;
+    const scale = name === "Zoli" ? 1.0 : (name === "Dávid" ? 2.0 : 3.0);
+    const latOff = baseLatOffset * scale;
+    const lngOff = baseLngOffset * scale;
+
+    const startMidpoint = [
+        (pos[0] + REVFULOP_COORDS[0]) / 2 - latOff,
+        (pos[1] + REVFULOP_COORDS[1]) / 2 - lngOff
+    ];
+
+    const finishMidpoint = [
+        (pos[0] + BALATONBOGLAR_COORDS[0]) / 2 + latOff,
+        (pos[1] + BALATONBOGLAR_COORDS[1]) / 2 + lngOff
+    ];
+
+    const startIcon = L.divIcon({
+        html: `<div class="distance-label" style="--swimmer-color: ${color}; border-color: ${color};">${startKm}</div>`,
+        className: 'custom-distance-label-icon',
+        iconSize: [0, 0],
+        iconAnchor: [0, 0]
+    });
+
+    const finishIcon = L.divIcon({
+        html: `<div class="distance-label" style="--swimmer-color: ${color}; border-color: ${color};">${finishKm}</div>`,
+        className: 'custom-distance-label-icon',
+        iconSize: [0, 0],
+        iconAnchor: [0, 0]
+    });
+
+    if (distanceLabels[name].start) {
+        distanceLabels[name].start.setLatLng(startMidpoint);
+        distanceLabels[name].start.setIcon(startIcon);
+    } else {
+        distanceLabels[name].start = L.marker(startMidpoint, { icon: startIcon, interactive: false }).addTo(map);
+    }
+
+    if (distanceLabels[name].end) {
+        distanceLabels[name].end.setLatLng(finishMidpoint);
+        distanceLabels[name].end.setIcon(finishIcon);
+    } else {
+        distanceLabels[name].end = L.marker(finishMidpoint, { icon: finishIcon, interactive: false }).addTo(map);
+    }
 }

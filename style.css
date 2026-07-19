@@ -329,3 +329,27 @@ body {
 .leaflet-container a.leaflet-popup-close-button:hover {
     color: #ffffff !important;
 }
+
+/* Swimmer distance connection lines & labels */
+.custom-distance-label-icon {
+    background: transparent !important;
+    border: none !important;
+}
+
+.distance-label {
+    font-family: 'Outfit', sans-serif;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--swimmer-color);
+    background: #ffffff;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    border: 1px solid var(--swimmer-color);
+    padding: 2px 6px;
+    border-radius: 8px;
+    white-space: nowrap;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    pointer-events: none;
+    display: inline-block;
+    transform: translate(-50%, -50%);
+}
