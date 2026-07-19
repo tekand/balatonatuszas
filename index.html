@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="hu">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Live Location Tracker - Balaton-átúszás</title>
+    <title>Biztonságos Élő Helyzetkövető - Balaton-átúszás</title>
     
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -29,11 +29,11 @@
 
     <!-- Floating Map Control Panel -->
     <div class="map-control-panel">
-        <button id="reset-view-btn" class="map-btn" title="Reset view to swim course">
+        <button id="reset-view-btn" class="map-btn" title="Nézet visszaállítása az úszóútvonalra">
             <svg viewBox="0 0 24 24">
                 <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.42 0-8-3.58-8-8s3.58-8 8-8 8 3.58 8 8-3.58 8-8 8zm0-13c-2.76 0-5 2.24-5 5s2.24 5 5 5 5-2.24 5-5-2.24-5-5-5zm0 8c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3z"/>
             </svg>
-            Reset Course View
+            Úszóútvonal nézet visszaállítása
         </button>
     </div>
 
@@ -45,16 +45,16 @@
                     <path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/>
                 </svg>
             </div>
-            <h1 class="auth-title">Secure Location Tracker</h1>
-            <p class="auth-description">Enter the tracking password to unlock the live Balaton-átúszás map and start monitoring swimmer progress.</p>
+            <h1 class="auth-title">Biztonságos Helyzetkövető</h1>
+            <p class="auth-description">Add meg a követési jelszót az élő Balaton-átúszás térkép feloldásához és az úszók követésének megkezdéséhez.</p>
             
             <form id="auth-form" class="auth-form">
                 <div class="input-group">
-                    <label for="password-input" class="input-label">Access Key</label>
+                    <label for="password-input" class="input-label">Belépési kód</label>
                     <input type="password" id="password-input" class="input-field" placeholder="••••••••" required autocomplete="current-password">
                 </div>
-                <div id="auth-error" class="auth-error">Incorrect password. Access denied.</div>
-                <button type="submit" class="btn-submit">Unlock Live Tracking</button>
+                <div id="auth-error" class="auth-error">Helytelen jelszó. Hozzáférés megtagadva.</div>
+                <button type="submit" class="btn-submit">Élő követés feloldása</button>
             </form>
         </div>
     </div>

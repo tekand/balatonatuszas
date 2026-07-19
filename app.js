@@ -1,6 +1,6 @@
 // Constants for locations and mapping
-const REVFULOP_COORDS = [46.8326, 17.6277];
-const BALATONBOGLAR_COORDS = [46.7785, 17.6561];
+const REVFULOP_COORDS = [46.8265, 17.631028];
+const BALATONBOGLAR_COORDS = [46.782083, 17.650111];
 const bounds = L.latLngBounds([REVFULOP_COORDS, BALATONBOGLAR_COORDS]);
 
 // Swimmer marker color mapping
@@ -39,17 +39,17 @@ function initMap() {
         color: '#0284c7', // Sky blue
         weight: 3,
         dashArray: '5, 8',
-        opacity: 0.8
+        opacity: 0.4
     }).addTo(map);
 
     // Add landmark markers for Start and Finish
-    L.marker(REVFULOP_COORDS, { icon: createLandmarkIcon('S', true) })
+    L.marker(REVFULOP_COORDS, { icon: createLandmarkIcon('R', true) })
         .addTo(map)
-        .bindPopup('<b>Start: Révfülöp</b><br>Balaton-átúszás starting point.');
+        .bindPopup('<b>Rajt: Révfülöp</b><br>Balaton-átúszás rajtállomás.');
         
-    L.marker(BALATONBOGLAR_COORDS, { icon: createLandmarkIcon('F', false) })
+    L.marker(BALATONBOGLAR_COORDS, { icon: createLandmarkIcon('C', false) })
         .addTo(map)
-        .bindPopup('<b>Finish: Balatonboglár</b><br>Balaton-átúszás finish point.');
+        .bindPopup('<b>Cél: Balatonboglár</b><br>Balaton-átúszás célállomás.');
 
     // Load saved view from localStorage if available, otherwise fit swim course bounds
     const savedCenter = localStorage.getItem('map_center');
@@ -128,7 +128,7 @@ function createSwimmerIcon(name, color) {
     });
 }
 
-// Create custom circular S/F icon for landmarks
+// Create custom circular R/C icon for landmarks
 function createLandmarkIcon(letter, isStart) {
     const color = isStart ? '#10b981' : '#ef4444'; // Emerald for start, Rose for finish
     const iconHtml = `<div class="landmark-marker" style="--marker-color: ${color}; background-color: ${color};">${letter}</div>`;
@@ -204,7 +204,7 @@ function tryUnlock(password, isAutoAttempt = false) {
         // Spin up live data tracking loops
         updateLiveLocations();
         if (trackingInterval) clearInterval(trackingInterval);
-        trackingInterval = setInterval(updateLiveLocations, 10000);
+        trackingInterval = setInterval(updateLiveLocations, 30000);
 
         return true;
     } catch (error) {
@@ -217,7 +217,7 @@ function tryUnlock(password, isAutoAttempt = false) {
         } else {
             // Display error in modal UI
             if (errorEl) {
-                errorEl.textContent = "Incorrect password. Access denied.";
+                errorEl.textContent = "Helytelen jelszó. Hozzáférés megtagadva.";
                 errorEl.classList.add('visible');
             }
         }
@@ -252,7 +252,7 @@ async function updateLiveLocations() {
                 } else {
                     markers[person.name] = L.marker(pos, { 
                         icon: createSwimmerIcon(person.name, color) 
-                    }).addTo(map).bindPopup(`<b>${person.name}</b><br>Live Tracking Active`);
+                    }).addTo(map).bindPopup(`<b>${person.name}</b><br>Élő követés aktív`);
                 }
             }
         } catch (error) {
