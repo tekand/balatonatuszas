@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Secure Live Location Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <!-- Include Crypto-JS for browser decryption -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        #map { height: 100vh; width: 100%; margin: 0; padding: 0; }
+    </style>
+</head>
+<body>
+
+    <div id="map"></div>
+
+    <script>
+        // 1. Paste your long encrypted string from Step 1 here
+        const ENCRYPTED_TOKENS = "VTJGc2RHVmtYMStTQ1ZkNXpVWjg0Q1cybjAyNi9ZUGtCOFFkNXhvVGhoTVB1YWtpR0dVMlJuL3JFck1DZXQyOWpxdWRkWVUxZXdtd2tqWnpla3BKcENPSGZZejY2S1B6SzVZNzVCTndjTXBRelVvUnFMeS9DREJiYm1OWnlYMlM=";
+
+        // Initialize map canvas using OpenStreetMap
+        const map = L.map('map').setView([0, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '© OpenStreetMap contributors'
+        }).addTo(map);
+
+        const markers = {};
+        let decryptedTokens = null;
+
+        // Helper functions to manage cookies
+        function setCookie(name, value, days) {
+            const date = new Date();
+            date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+            document.cookie = `${name}=${value};expires=${date.toUTCString()};path=/;SameSite=Strict;Secure`;
+        }
+
+        function getCookie(name) {
+            const value = `; ${document.cookie}`;
+            const parts = value.split(`; ${name}=`);
+            if (parts.length === 2) return parts.pop().split(';').shift();
+            return null;
+        }
+
+        // Initialize authentication flow
+        function authenticate() {
+            let password = getCookie("tracker_key");
+
+            if (!password) {
+                password = prompt("Enter password to unlock live tracking maps:");
+                if (!password) return; 
+            }
+
+            try {
+                const decryptedBytes = CryptoJS.AES.decrypt(atob(ENCRYPTED_TOKENS), password);
+                const decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
+                
+                decryptedTokens = JSON.parse(decryptedText);
+                
+                // Save working password for 365 days
+                setCookie("tracker_key", password, 365);
+                
+                // Spin up live data tracking loops
+                updateLiveLocations();
+                setInterval(updateLiveLocations, 10000); // Polling interval set to 10 seconds
+            } catch (error) {
+                alert("Incorrect password. Access denied.");
+                setCookie("tracker_key", "", -1); // Wipe cookie if decryption fails
+            }
+        }
+
+        async function updateLiveLocations() {
+            if (!decryptedTokens) return;
+
+            // Mapping the names to the keys inside your encrypted payload
+            const targets = [
+                { name: "Zoli", token: decryptedTokens.zoli },
+                { name: "Dávid", token: decryptedTokens.david },
+                { name: "Evi", token: decryptedTokens.evi }
+            ];
+            
+            const coordinates = [];
+
+            for (let person of targets) {
+                if (!person.token) continue;
+
+                try {
+                    const targetUrl = `https://graph.tractive.com/v3/public_share/${person.token}/position`;
+                    const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
+                    const data = await response.json();
+                    
+                    if (data.lat && data.lon) {
+                        const pos = [data.lat, data.lon];
+                        coordinates.push(pos);
+
+                        if (markers[person.name]) {
+                            markers[person.name].setLatLng(pos);
+                        } else {
+                            markers[person.name] = L.marker(pos).addTo(map).bindPopup(person.name);
+                        }
+                    }
+                } catch (error) {
+                    console.error(`Error updating tracking stream for ${person.name}:`, error);
+                }
+            }
+
+            // Dynamically fit all active targets onto the map window
+            if (coordinates.length > 0) {
+                const bounds = L.latLngBounds(coordinates);
+                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
+            }
+        }
+
+        // Run authentication on page launch
+        authenticate();
+    </script>
+</body>
+</html>
