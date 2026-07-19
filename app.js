@@ -7,9 +7,7 @@ const bounds = L.latLngBounds([REVFULOP_COORDS, BALATONBOGLAR_COORDS]);
 const SWIMMER_COLORS = {
     "Zoli": "#0d9488",  // Teal
     "Dávid": "#3b82f6", // Blue
-    "Evi": "#ec4899",   // Pink
-    "Márk": "#f59e0b",  // Amber
-    "Kata": "#8b5cf6"   // Violet
+    "Evi": "#ec4899"    // Pink
 };
 
 // State variables
@@ -272,21 +270,13 @@ async function updateLiveLocations() {
         }
     }
 
-    // Render static test/mock swimmers for preview
-    const mockSwimmers = [
-        { name: "Márk", pos: [46.813175, 17.636753], color: SWIMMER_COLORS["Márk"] },
-        { name: "Kata", pos: [46.795408, 17.644386], color: SWIMMER_COLORS["Kata"] }
-    ];
-
-    for (let mock of mockSwimmers) {
-        if (markers[mock.name]) {
-            markers[mock.name].setLatLng(mock.pos);
-        } else {
-            markers[mock.name] = L.marker(mock.pos, { 
-                icon: createSwimmerIcon(mock.name, mock.color) 
-            }).addTo(map).bindPopup(`<b>${mock.name}</b><br>Teszt követés aktív`);
-        }
-        updateSwimmerConnections(mock.name, mock.pos, mock.color);
+    // Update last refresh time indicator
+    const now = new Date();
+    const timeString = now.toTimeString().split(' ')[0];
+    const refreshStatusEl = document.getElementById('refresh-status');
+    if (refreshStatusEl) {
+        refreshStatusEl.textContent = `Legutóbbi frissítés: ${timeString}`;
+        refreshStatusEl.style.display = 'block';
     }
     
     // Note: We deliberately DO NOT reset or set the view here,
