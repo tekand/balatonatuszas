@@ -17,10 +17,14 @@
 
     <script>
         // 1. Paste your long encrypted string from Step 1 here
-        const ENCRYPTED_TOKENS = "VTJGc2RHVmtYMStTQ1ZkNXpVWjg0Q1cybjAyNi9ZUGtCOFFkNXhvVGhoTVB1YWtpR0dVMlJuL3JFck1DZXQyOWpxdWRkWVUxZXdtd2tqWnpla3BKcENPSGZZejY2S1B6SzVZNzVCTndjTXBRelVvUnFMeS9DREJiYm1OWnlYMlM=";
+        const ENCRYPTED_TOKENS = "VTJGc2RHVmtYMStEWnN3emRCRGZmazRDL1JhdTlUU056V0tqdTRFc080SEw5cW05OGEwdTd6RDBmaXRna2ZYTjIrYVdweitTMnBCRk15S2JmaFBxM3BwOFZRRFQ0KzJNWlR1KzJqTGZyUm5XS2RORVYvZlhjVjB0WVJiNU40Rkd0cDFoSTJuMTY1NEtGY2xGenVuVTlBPT0=";
 
-        // Initialize map canvas using OpenStreetMap
-        const map = L.map('map').setView([0, 0], 2);
+        // Coordinates for Lake Balaton, Hungary
+        const BALATON_COORDS = [46.85, 17.75];
+        const DEFAULT_ZOOM = 10;
+
+        // Initialize map canvas centered strictly on Lake Balaton
+        const map = L.map('map').setView(BALATON_COORDS, DEFAULT_ZOOM);
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '© OpenStreetMap contributors'
         }).addTo(map);
@@ -62,36 +66,33 @@
                 
                 // Spin up live data tracking loops
                 updateLiveLocations();
-                setInterval(updateLiveLocations, 10000); // Polling interval set to 10 seconds
+                setInterval(updateLiveLocations, 10000); 
             } catch (error) {
                 alert("Incorrect password. Access denied.");
-                setCookie("tracker_key", "", -1); // Wipe cookie if decryption fails
+                setCookie("tracker_key", "", -1); 
             }
         }
 
         async function updateLiveLocations() {
             if (!decryptedTokens) return;
 
-            // Mapping the names to the keys inside your encrypted payload
+            // Map the generic token keys to names in index.html
             const targets = [
-                { name: "Zoli", token: decryptedTokens.zoli },
-                { name: "Dávid", token: decryptedTokens.david },
-                { name: "Evi", token: decryptedTokens.evi }
+                { name: "Zoli", token: decryptedTokens.token1 },
+                { name: "Dávid", token: decryptedTokens.token2 },
+                { name: "Evi", token: decryptedTokens.token3 }
             ];
-            
-            const coordinates = [];
 
             for (let person of targets) {
                 if (!person.token) continue;
 
                 try {
-                    const targetUrl = `https://graph.tractive.com/v3/public_share/${person.token}/position`;
+                    const targetUrl = `https://graph.tractive.com/v3/public_sharing/${person.token}/state`;
                     const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
                     const data = await response.json();
                     
                     if (data.lat && data.lon) {
                         const pos = [data.lat, data.lon];
-                        coordinates.push(pos);
 
                         if (markers[person.name]) {
                             markers[person.name].setLatLng(pos);
@@ -104,11 +105,8 @@
                 }
             }
 
-            // Dynamically fit all active targets onto the map window
-            if (coordinates.length > 0) {
-                const bounds = L.latLngBounds(coordinates);
-                map.fitBounds(bounds, { padding: [50, 50], maxZoom: 16 });
-            }
+            // Always reset or maintain the view centered on Balaton, regardless of where they move
+            map.setView(BALATON_COORDS, DEFAULT_ZOOM);
         }
 
         // Run authentication on page launch
