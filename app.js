@@ -7,14 +7,15 @@ const bounds = L.latLngBounds([REVFULOP_COORDS, BALATONBOGLAR_COORDS]);
 const SWIMMER_COLORS = {
     "Zoli": "#0d9488",  // Teal
     "Dávid": "#3b82f6", // Blue
-    "Evi": "#ec4899"    // Pink
+    "Evi": "#ec4899",   // Pink
+    "Márk": "#f59e0b",  // Amber
+    "Kata": "#8b5cf6"   // Violet
 };
 
 // State variables
 let map;
 let markers = {};
 let connectionLines = {};
-let distanceLabels = {};
 let decryptedTokens = null;
 let trackingInterval = null;
 
@@ -117,16 +118,22 @@ function getCookie(name) {
     return null;
 }
 
-// Create custom circular first-letter icon for swimmers
-function createSwimmerIcon(name, color) {
+// Create custom circular first-letter icon for swimmers with a single distance bubble
+function createSwimmerIcon(name, color, startKm = '', finishKm = '') {
     const firstLetter = name.charAt(0).toUpperCase();
-    const iconHtml = `<div class="letter-marker" style="--marker-color: ${color}; background-color: ${color};">${firstLetter}</div>`;
+    const showLabels = startKm && finishKm;
+    const iconHtml = `
+        <div class="swimmer-marker-group">
+            ${showLabels ? `<div class="distance-bubble" style="--swimmer-color: ${color};">R: ${startKm} • C: ${finishKm}</div>` : ''}
+            <div class="letter-marker" style="--marker-color: ${color}; background-color: ${color};">${firstLetter}</div>
+        </div>
+    `;
     return L.divIcon({
         html: iconHtml,
         className: 'custom-div-icon',
-        iconSize: [36, 42],
-        iconAnchor: [18, 42],
-        popupAnchor: [0, -42]
+        iconSize: [160, 64],
+        iconAnchor: [80, 64],
+        popupAnchor: [0, -64]
     });
 }
 
@@ -238,7 +245,7 @@ async function updateLiveLocations() {
     ];
 
     for (let person of targets) {
-        if (!person.token) continue;
+        if (!person.token || person.token.includes("TOKEN")) continue;
 
         try {
             const targetUrl = `https://graph.tractive.com/3/public_share/${person.token}/position`;
@@ -263,6 +270,23 @@ async function updateLiveLocations() {
         } catch (error) {
             console.error(`Error updating tracking stream for ${person.name}:`, error);
         }
+    }
+
+    // Render static test/mock swimmers for preview
+    const mockSwimmers = [
+        { name: "Márk", pos: [46.813175, 17.636753], color: SWIMMER_COLORS["Márk"] },
+        { name: "Kata", pos: [46.795408, 17.644386], color: SWIMMER_COLORS["Kata"] }
+    ];
+
+    for (let mock of mockSwimmers) {
+        if (markers[mock.name]) {
+            markers[mock.name].setLatLng(mock.pos);
+        } else {
+            markers[mock.name] = L.marker(mock.pos, { 
+                icon: createSwimmerIcon(mock.name, mock.color) 
+            }).addTo(map).bindPopup(`<b>${mock.name}</b><br>Teszt követés aktív`);
+        }
+        updateSwimmerConnections(mock.name, mock.pos, mock.color);
     }
     
     // Note: We deliberately DO NOT reset or set the view here,
@@ -301,53 +325,8 @@ function updateSwimmerConnections(name, pos, color) {
         connectionLines[name].end = L.polyline([pos, BALATONBOGLAR_COORDS], lineOpts).addTo(map);
     }
 
-    // 3. Create or update distance labels
-    if (!distanceLabels[name]) {
-        distanceLabels[name] = {};
-    }
-
-    // Perpendicular offset components for label separation
-    const baseLatOffset = 0.0006;
-    const baseLngOffset = 0.0013;
-    const scale = name === "Zoli" ? 1.0 : (name === "Dávid" ? 2.0 : 3.0);
-    const latOff = baseLatOffset * scale;
-    const lngOff = baseLngOffset * scale;
-
-    const startMidpoint = [
-        (pos[0] + REVFULOP_COORDS[0]) / 2 - latOff,
-        (pos[1] + REVFULOP_COORDS[1]) / 2 - lngOff
-    ];
-
-    const finishMidpoint = [
-        (pos[0] + BALATONBOGLAR_COORDS[0]) / 2 + latOff,
-        (pos[1] + BALATONBOGLAR_COORDS[1]) / 2 + lngOff
-    ];
-
-    const startIcon = L.divIcon({
-        html: `<div class="distance-label" style="--swimmer-color: ${color}; border-color: ${color};">${startKm}</div>`,
-        className: 'custom-distance-label-icon',
-        iconSize: [0, 0],
-        iconAnchor: [0, 0]
-    });
-
-    const finishIcon = L.divIcon({
-        html: `<div class="distance-label" style="--swimmer-color: ${color}; border-color: ${color};">${finishKm}</div>`,
-        className: 'custom-distance-label-icon',
-        iconSize: [0, 0],
-        iconAnchor: [0, 0]
-    });
-
-    if (distanceLabels[name].start) {
-        distanceLabels[name].start.setLatLng(startMidpoint);
-        distanceLabels[name].start.setIcon(startIcon);
-    } else {
-        distanceLabels[name].start = L.marker(startMidpoint, { icon: startIcon, interactive: false }).addTo(map);
-    }
-
-    if (distanceLabels[name].end) {
-        distanceLabels[name].end.setLatLng(finishMidpoint);
-        distanceLabels[name].end.setIcon(finishIcon);
-    } else {
-        distanceLabels[name].end = L.marker(finishMidpoint, { icon: finishIcon, interactive: false }).addTo(map);
+    // 3. Update the swimmer marker icon to include current distances
+    if (markers[name]) {
+        markers[name].setIcon(createSwimmerIcon(name, color, startKm, finishKm));
     }
 }
