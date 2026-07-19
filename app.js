@@ -16,12 +16,14 @@ let markers = {};
 let connectionLines = {};
 let decryptedTokens = null;
 let trackingInterval = null;
+let userLocationMarker = null;
 
 // Initialize application on load
 document.addEventListener("DOMContentLoaded", () => {
     initMap();
     setupEventListeners();
     authenticate();
+    trackUserLocation();
 });
 
 // Initialize Leaflet Map
@@ -318,5 +320,44 @@ function updateSwimmerConnections(name, pos, color) {
     // 3. Update the swimmer marker icon to include current distances
     if (markers[name]) {
         markers[name].setIcon(createSwimmerIcon(name, color, startKm, finishKm));
+    }
+}
+
+// Watch user's GPS position and display on map
+function trackUserLocation() {
+    if ("geolocation" in navigator) {
+        navigator.geolocation.watchPosition(
+            (position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                const userPos = [lat, lon];
+
+                const userIcon = L.divIcon({
+                    html: '<div class="user-location-marker"></div>',
+                    className: 'custom-div-icon',
+                    iconSize: [20, 20],
+                    iconAnchor: [10, 10]
+                });
+
+                if (userLocationMarker) {
+                    userLocationMarker.setLatLng(userPos);
+                } else {
+                    userLocationMarker = L.marker(userPos, { 
+                        icon: userIcon,
+                        zIndexOffset: 1000
+                    }).addTo(map).bindPopup('<b>Saját helyzeted</b>');
+                }
+            },
+            (error) => {
+                console.warn("Geolocation access denied or failed:", error);
+            },
+            {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 0
+            }
+        );
+    } else {
+        console.log("Geolocation is not supported by this browser.");
     }
 }

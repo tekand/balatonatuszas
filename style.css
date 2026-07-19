@@ -380,3 +380,38 @@ body {
     pointer-events: none;
     display: none;
 }
+
+/* User location marker styling */
+.user-location-marker {
+    width: 14px;
+    height: 14px;
+    background-color: #3b82f6;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    box-shadow: 0 0 8px rgba(59, 130, 246, 0.8);
+    position: relative;
+}
+
+.user-location-marker::after {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -5px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: rgba(59, 130, 246, 0.4);
+    animation: user-pulse 1.8s infinite ease-in-out;
+    z-index: -1;
+}
+
+@keyframes user-pulse {
+    0% {
+        transform: scale(0.6);
+        opacity: 1;
+    }
+    100% {
+        transform: scale(1.8);
+        opacity: 0;
+    }
+}
