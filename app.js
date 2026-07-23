@@ -75,6 +75,7 @@ function initMap() {
 function resetView() {
     map.fitBounds(bounds, { padding: [100, 100] });
     saveMapView();
+    trackEvent('Reset View');
 }
 
 // Save map center and zoom level to localStorage
@@ -115,6 +116,13 @@ function getCookie(name) {
     const parts = value.split(`; ${name}=`);
     if (parts.length === 2) return parts.pop().split(';').shift();
     return null;
+}
+
+// Analytics helper for Plausible custom events
+function trackEvent(eventName, props = {}) {
+    if (typeof window.plausible === "function") {
+        window.plausible(eventName, { props });
+    }
 }
 
 // Format unix timestamp into Hungarian relative time string (nap, óra, perc, másodperc)
@@ -244,9 +252,11 @@ function tryUnlock(password, isAutoAttempt = false) {
         if (trackingInterval) clearInterval(trackingInterval);
         trackingInterval = setInterval(updateLiveLocations, 30000);
 
+        trackEvent('Unlock Success', { isAuto: isAutoAttempt });
         return true;
     } catch (error) {
         console.error("Unlock attempt failed:", error);
+        trackEvent('Unlock Failure', { isAuto: isAutoAttempt });
 
         if (isAutoAttempt) {
             // Saved cookie was invalid/expired, clear it and show modal
@@ -293,6 +303,7 @@ async function updateLiveLocations() {
                     markers[person.name] = L.marker(pos, {
                         icon: createSwimmerIcon(person.name, color)
                     }).addTo(map).bindPopup(popupContent);
+                    markers[person.name].on('click', () => trackEvent('Swimmer Clicked', { swimmer: person.name }));
                 }
 
                 // Update thin dotted connection lines and distance labels
