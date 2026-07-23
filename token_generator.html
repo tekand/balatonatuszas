@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="hu">
+<head>
+    <meta charset="UTF-8">
+    <title>Token Generátor</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        .input-group { margin-bottom: 10px; }
+        label { display: inline-block; width: 120px; }
+        input[type="text"] { width: 300px; padding: 5px; }
+        button { padding: 8px 15px; margin-top: 10px; cursor: pointer; }
+        textarea { margin-top: 20px; width: 100%; font-family: monospace; }
+    </style>
+</head>
+<body>
+    <h1>Titkos Token Generátor</h1>
+    <p>Írd be a jelszót és az úszók követési tokenjeit a <code>config.js</code> tartalmának generálásához.</p>
+    
+    <div class="input-group">
+        <label for="password">Jelszó:</label>
+        <input type="text" id="password" placeholder="Belépési kód">
+    </div>
+    
+    <div class="input-group">
+        <label for="token1">Zoli Token:</label>
+        <input type="text" id="token1" placeholder="Token1">
+    </div>
+    
+    <div class="input-group">
+        <label for="token2">Dávid Token:</label>
+        <input type="text" id="token2" placeholder="Token2">
+    </div>
+    
+    <button onclick="generate()">Titkosítás és Generálás</button>
+    
+    <textarea id="result" rows="4" readonly placeholder="Az eredmény itt fog megjelenni..."></textarea>
+
+    <script>
+        function generate() {
+            const password = document.getElementById('password').value;
+            const token1 = document.getElementById('token1').value;
+            const token2 = document.getElementById('token2').value;
+            
+            if (!password) {
+                alert("Kérlek add meg a jelszót!");
+                return;
+            }
+
+            const tokens = { token1: token1, token2: token2 };
+            const text = JSON.stringify(tokens);
+            
+            // Titkosítás AES-el a megadott jelszóval
+            const encryptedBytes = CryptoJS.AES.encrypt(text, password);
+            
+            // Base64 kódolás (ahogy az app.js-ben a visszafejtés várja)
+            const base64Encrypted = btoa(encryptedBytes.toString());
+            
+            const configOutput = `// Configuration file containing the encrypted tracking tokens.\nconst ENCRYPTED_TOKENS = "${base64Encrypted}";`;
+            
+            document.getElementById('result').value = configOutput;
+        }
+    </script>
+</body>
+</html>
