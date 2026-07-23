@@ -6,8 +6,7 @@ const bounds = L.latLngBounds([REVFULOP_COORDS, BALATONBOGLAR_COORDS]);
 // Swimmer marker color mapping
 const SWIMMER_COLORS = {
     "Zoli": "#0d9488",  // Teal
-    "Dávid": "#3b82f6", // Blue
-    "Evi": "#ec4899"    // Pink
+    "Dávid": "#3b82f6"  // Blue
 };
 
 // State variables
@@ -48,11 +47,11 @@ function initMap() {
     // Add landmark markers for Start and Finish
     L.marker(REVFULOP_COORDS, { icon: createLandmarkIcon('R', true) })
         .addTo(map)
-        .bindPopup('<b>Rajt: Révfülöp</b><br>Balaton-átúszás rajtállomás.');
-        
+        .bindPopup('<b>Rajt: Révfülöp</b>');
+
     L.marker(BALATONBOGLAR_COORDS, { icon: createLandmarkIcon('C', false) })
         .addTo(map)
-        .bindPopup('<b>Cél: Balatonboglár</b><br>Balaton-átúszás célállomás.');
+        .bindPopup('<b>Cél: Balatonboglár</b>');
 
     // Load saved view from localStorage if available, otherwise fit swim course bounds
     const savedCenter = localStorage.getItem('map_center');
@@ -118,13 +117,43 @@ function getCookie(name) {
     return null;
 }
 
+// Format unix timestamp into Hungarian relative time string (nap, óra, perc, másodperc)
+function formatRelativeTime(unixTimestamp) {
+    if (!unixTimestamp) return "Ismeretlen időpont";
+
+    // Convert unix timestamp in seconds to milliseconds if needed
+    const timeMs = unixTimestamp < 1e11 ? unixTimestamp * 1000 : unixTimestamp;
+    const diffSec = Math.max(0, Math.floor((Date.now() - timeMs) / 1000));
+
+    const days = Math.floor(diffSec / 86400);
+    const hours = Math.floor((diffSec % 86400) / 3600);
+    const minutes = Math.floor((diffSec % 3600) / 60);
+    const seconds = diffSec % 60;
+
+    let parts = [];
+    if (days > 0) {
+        parts.push(`${days} napja`);
+        if (hours > 0) parts.push(`${hours} órája`);
+    } else if (hours > 0) {
+        parts.push(`${hours} órája`);
+        if (minutes > 0) parts.push(`${minutes} perce`);
+    } else if (minutes > 0) {
+        parts.push(`${minutes} perce`);
+        if (seconds > 0) parts.push(`${seconds} másodperce`);
+    } else {
+        parts.push(`${seconds} másodperce`);
+    }
+
+    return parts.join(" ");
+}
+
 // Create custom circular first-letter icon for swimmers with a single distance bubble
 function createSwimmerIcon(name, color, startKm = '', finishKm = '') {
     const firstLetter = name.charAt(0).toUpperCase();
     const showLabels = startKm && finishKm;
     const iconHtml = `
         <div class="swimmer-marker-group">
-            ${showLabels ? `<div class="distance-bubble" style="--swimmer-color: ${color};">R: ${startKm} • C: ${finishKm}</div>` : ''}
+            ${showLabels ? `<div class="distance-bubble" style="--swimmer-color: ${color};">${startKm} • ${finishKm}</div>` : ''}
             <div class="letter-marker" style="--marker-color: ${color}; background-color: ${color};">${firstLetter}</div>
         </div>
     `;
@@ -185,7 +214,7 @@ function hideAuthModal() {
 // Attempt to decrypt the tokens with the provided password
 function tryUnlock(password, isAutoAttempt = false) {
     const errorEl = document.getElementById('auth-error');
-    
+
     if (errorEl) {
         errorEl.classList.remove('visible');
     }
@@ -197,7 +226,7 @@ function tryUnlock(password, isAutoAttempt = false) {
 
         const decryptedBytes = CryptoJS.AES.decrypt(atob(ENCRYPTED_TOKENS), password);
         const decryptedText = decryptedBytes.toString(CryptoJS.enc.Utf8);
-        
+
         if (!decryptedText) {
             throw new Error("Invalid password");
         }
@@ -218,7 +247,7 @@ function tryUnlock(password, isAutoAttempt = false) {
         return true;
     } catch (error) {
         console.error("Unlock attempt failed:", error);
-        
+
         if (isAutoAttempt) {
             // Saved cookie was invalid/expired, clear it and show modal
             setCookie("tracker_key", "", -1);
@@ -240,8 +269,7 @@ async function updateLiveLocations() {
 
     const targets = [
         { name: "Zoli", token: decryptedTokens.token1 },
-        { name: "Dávid", token: decryptedTokens.token2 },
-        { name: "Evi", token: decryptedTokens.token3 }
+        { name: "Dávid", token: decryptedTokens.token2 }
     ];
 
     for (let person of targets) {
@@ -251,17 +279,20 @@ async function updateLiveLocations() {
             const targetUrl = `https://graph.tractive.com/3/public_share/${person.token}/position`;
             const response = await fetch(`https://corsproxy.io/?${encodeURIComponent(targetUrl)}`);
             const data = await response.json();
-            
+
             if (data.lat && data.lon) {
                 const pos = [data.lat, data.lon];
                 const color = SWIMMER_COLORS[person.name] || "#6366f1";
+                const relativeTime = formatRelativeTime(data.time);
+                const popupContent = `<b>${person.name}</b><br>Frissítve: ${relativeTime}`;
 
                 if (markers[person.name]) {
                     markers[person.name].setLatLng(pos);
+                    markers[person.name].setPopupContent(popupContent);
                 } else {
-                    markers[person.name] = L.marker(pos, { 
-                        icon: createSwimmerIcon(person.name, color) 
-                    }).addTo(map).bindPopup(`<b>${person.name}</b><br>Élő követés aktív`);
+                    markers[person.name] = L.marker(pos, {
+                        icon: createSwimmerIcon(person.name, color)
+                    }).addTo(map).bindPopup(popupContent);
                 }
 
                 // Update thin dotted connection lines and distance labels
@@ -280,7 +311,7 @@ async function updateLiveLocations() {
         refreshStatusEl.textContent = `Legutóbbi frissítés: ${timeString}`;
         refreshStatusEl.style.display = 'block';
     }
-    
+
     // Note: We deliberately DO NOT reset or set the view here,
     // which allows the user to pan/zoom freely and preserves the viewport state.
 }
@@ -342,7 +373,7 @@ function trackUserLocation() {
                 if (userLocationMarker) {
                     userLocationMarker.setLatLng(userPos);
                 } else {
-                    userLocationMarker = L.marker(userPos, { 
+                    userLocationMarker = L.marker(userPos, {
                         icon: userIcon,
                         zIndexOffset: 1000
                     }).addTo(map).bindPopup('<b>Saját helyzeted</b>');
